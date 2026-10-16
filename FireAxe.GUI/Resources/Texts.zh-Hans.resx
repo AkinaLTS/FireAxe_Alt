@@ -162,6 +162,9 @@
   <data name="AutoDetectWorkshopItemLinkInClipboard" xml:space="preserve">
     <value>自动检测剪切板内的创意工坊链接</value>
   </data>
+  <data name="WorkshopCollectionLinkDetectedMessage" xml:space="preserve">
+    <value>你复制的链接（{0}）指向一个创意工坊合集，而非单个物品。合集不能作为单个模组添加。如需导入它，请右键点击模组列表并选择“新建 -&gt; 创意工坊合集”。</value>
+  </data>
   <data name="AutoRedownload" xml:space="preserve">
     <value>自动重新下载</value>
   </data>
@@ -1174,5 +1177,17 @@
   </data>
   <data name="AddonsWithMissingFilesNotFound" xml:space="preserve">
     <value>未发现文件不存在的模组。</value>
+  </data>
+  <data name="UpdateCheck" xml:space="preserve">
+    <value>更新检查</value>
+  </data>
+  <data name="IsAutoCheckUpdateEnabled" xml:space="preserve">
+    <value>启动时自动检查更新</value>
+  </data>
+  <data name="UpdateCheckRepository" xml:space="preserve">
+    <value>更新检查仓库（所有者/仓库名）</value>
+  </data>
+  <data name="UpdateCheckRepositoryNote" xml:space="preserve">
+    <value>格式为“所有者/仓库名”。更新检查会使用版本号最高的发行版。</value>
   </data>
 </root>

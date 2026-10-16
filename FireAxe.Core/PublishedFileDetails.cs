@@ -17,6 +17,10 @@ public class PublishedFileDetails
     [AllowNull]
     public string FileUrl { get; init => field = value ?? ""; } = "";
 
+    [JsonProperty("filename")]
+    [AllowNull]
+    public string FileName { get; init => field = value ?? ""; } = "";
+
     [JsonProperty("preview_url")]
     [AllowNull]
     public string PreviewUrl { get; init => field = value ?? ""; } = "";

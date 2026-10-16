@@ -207,7 +207,10 @@ public class WorkshopVpkAddon : VpkAddon
             async Task<GetPublishedFileDetailsResult> RunTask()
             {
                 var result = await rawTask.ConfigureAwait(false);
-                await addonTaskCreator.StartNew(self => self.PublishedFileDetailsCache = result.IsSucceeded ? result.Content : null).ConfigureAwait(false);
+                // Only cache downloadable item details. The download check treats a non-null cache as
+                // "this is a valid downloadable addon" and skips the api call, so caching a collection's
+                // details here would let it proceed to download the entry (which is a preview image).
+                await addonTaskCreator.StartNew(self => self.PublishedFileDetailsCache = result.IsDownloadable ? result.Content : null).ConfigureAwait(false);
                 return result;
             }
             task = RunTask();
@@ -233,11 +236,7 @@ public class WorkshopVpkAddon : VpkAddon
             return cache;
         }
         var result = await GetPublishedFileDetailsAsync(cancellationToken).ConfigureAwait(false);
-        if (result.IsSucceeded)
-        {
-            return result.Content;
-        }
-        return null;
+        return result.Details;
     }
 
     protected override void OnClearCaches()
@@ -725,6 +724,22 @@ public class WorkshopVpkAddon : VpkAddon
                     string downloadFilePath = Path.Join(dirPath, downloadFileName);
                     string url = pfd.FileUrl;
 
+                    if (string.IsNullOrWhiteSpace(url))
+                    {
+                        invalid = await addonTaskCreator.StartNew(
+                            self => self.SetProblem(new AddonDownloadFailedProblem(self)
+                            {
+                                Url = url,
+                                FilePath = downloadFilePath,
+                                Exception = new InvalidOperationException($"The download url of the published file {publishedFileId} is empty.")
+                            })).ConfigureAwait(false);
+                        if (invalid)
+                        {
+                            return;
+                        }
+                        return;
+                    }
+
                     using (var download = downloadService.Download(url, downloadFilePath))
                     {
                         invalid = await addonTaskCreator.StartNew(self => self.DownloadItem = download).ConfigureAwait(false);
@@ -939,7 +954,7 @@ public class WorkshopVpkAddon : VpkAddon
     {
         if (!_publishedFileId.HasValue)
         {
-            return Task.FromResult(new GetPublishedFileDetailsResult(null, GetPublishedFileDetailsResultStatus.Failed));
+            return Task.FromResult(new GetPublishedFileDetailsResult(null, false, GetPublishedFileDetailsResultStatus.Failed));
         }
         return PublishedFileUtils.GetPublishedFileDetailsAsync(_publishedFileId.Value, Root.HttpClient, cancellationToken);
     }

@@ -146,10 +146,9 @@ public sealed class NewWorkshopCollectionViewModel : ViewModelBase, IActivatable
                 var collectionDetailsTask = PublishedFileUtils.GetPublishedFileDetailsAsync(collectionId, httpClient, _createCts.Token);
                 itemIds = await itemIdsTask;
                 var getCollectionDetailsResult = await collectionDetailsTask;
-                if (getCollectionDetailsResult.IsSucceeded)
-                {
-                    collectionDetails = getCollectionDetailsResult.Content;
-                }
+                // The collection itself is reported as an image entry, so it's not downloadable,
+                // but its details still carry the title we use for the new group.
+                collectionDetails = getCollectionDetailsResult.Details;
             }
             catch (OperationCanceledException) { }
 

@@ -64,9 +64,9 @@ public class WorkshopVpkFinderViewModel : ViewModelBase, IActivatableViewModel, 
             try
             {
                 var result = await PublishedFileUtils.GetPublishedFileDetailsAsync(PublishedFileId, _finder._httpClient, _cancellationTokenSource.Token);
-                if (result.IsSucceeded)
+                if (result.Details?.Title is { } title)
                 {
-                    Title = result.Content.Title;
+                    Title = title;
                 }
                 else
                 {

@@ -478,7 +478,7 @@ public sealed class DownloadService : IDownloadService
     private readonly object _downloadItemsLock = new();
     private readonly HashSet<DownloadItem> _activeDownloadItems = new();
 
-    private readonly SemaphoreSlim _availableDownloads = new(5);
+    private readonly SemaphoreSlim _availableDownloads = new(3);
 
     public DownloadService(DownloadServiceSettings settings)
     {
@@ -498,8 +498,8 @@ public sealed class DownloadService : IDownloadService
 
                 _downloaderConfig = new()
                 {
-                    ChunkCount = 4,
-                    ParallelDownload = true
+                    ChunkCount = 1,
+                    ParallelDownload = false
                 };
                 if (_settings.Proxy is { } proxy)
                 {

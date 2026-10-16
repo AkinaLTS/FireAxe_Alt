@@ -7,6 +7,56 @@ namespace FireAxe;
 
 public static class WorkshopCollectionUtils
 {
+    /// <summary>
+    /// Determines whether the given published file id refers to a workshop collection
+    /// rather than an ordinary item. Returns null when the answer can't be determined
+    /// (e.g. a network failure), so callers can avoid acting on an inconclusive result.
+    /// </summary>
+    public static async Task<bool?> IsWorkshopCollectionAsync(ulong publishedFileId, HttpClient httpClient, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(httpClient);
+
+        try
+        {
+            using var postContent = new StringContent($"collectioncount=1&publishedfileids[0]={publishedFileId}", Encoding.UTF8, "application/x-www-form-urlencoded");
+            using var response = await httpClient.PostAsync("https://api.steampowered.com/ISteamRemoteStorage/GetCollectionDetails/v1/", postContent, cancellationToken).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var jobj = JObject.Parse(responseJson);
+            var responseToken = jobj["response"];
+            if (responseToken is null)
+            {
+                return null;
+            }
+            // The api echoes a per-id result: 1 means the id is a collection, 9 means it isn't.
+            if (responseToken["collectiondetails"] is JArray details && details.Count > 0 && details[0] is JObject detail)
+            {
+                if (detail["result"] is { } resultToken && resultToken.Type == JTokenType.Integer)
+                {
+                    int result = (int)resultToken;
+                    if (result == 1)
+                    {
+                        return true;
+                    }
+                    if (result == 9)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return false;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Exception occurred during WorkshopCollectionUtils.IsWorkshopCollectionAsync");
+            return null;
+        }
+    }
+
     public static async Task<ulong[]?> GetWorkshopCollectionContentAsync(ulong collectionId, bool includeLinkedCollections, HttpClient httpClient, CancellationToken cancellationToken)
     {
         if (!includeLinkedCollections)

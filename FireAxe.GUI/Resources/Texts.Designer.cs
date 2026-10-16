@@ -3015,6 +3015,42 @@ namespace FireAxe.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Automatically check for updates on startup.
+        /// </summary>
+        public static string IsAutoCheckUpdateEnabled {
+            get {
+                return ResourceManager.GetString("IsAutoCheckUpdateEnabled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Update Check.
+        /// </summary>
+        public static string UpdateCheck {
+            get {
+                return ResourceManager.GetString("UpdateCheck", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Update check repository (owner/name).
+        /// </summary>
+        public static string UpdateCheckRepository {
+            get {
+                return ResourceManager.GetString("UpdateCheckRepository", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Format: owner/name. The release with the highest version number will be used for the update check..
+        /// </summary>
+        public static string UpdateCheckRepositoryNote {
+            get {
+                return ResourceManager.GetString("UpdateCheckRepositoryNote", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to User Interface.
         /// </summary>
         public static string UserInterface {
@@ -3185,6 +3221,15 @@ namespace FireAxe.Resources {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to The link you copied ({0}) points to a workshop collection, not a single item. A collection cannot be added as one addon. To import it, right-click the addon list and choose &quot;New -&gt; Workshop Collection&quot;..
+        /// </summary>
+        public static string WorkshopCollectionLinkDetectedMessage {
+            get {
+                return ResourceManager.GetString("WorkshopCollectionLinkDetectedMessage", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to No redundant VPK files were found..
         /// </summary>

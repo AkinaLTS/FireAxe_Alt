@@ -89,6 +89,44 @@
         </StackPanel>
       </Border>
 
+      <!--update check-->
+      <TextBlock
+        Text="{x:Static r:Texts.UpdateCheck}"
+        Classes="Heading1"
+        Margin="0, 5, 0, 2.5"/>
+      <Border
+        Classes="Level1"
+        Margin="0, 2.5, 0, 5"
+        Padding="5">
+        <StackPanel Orientation="Vertical">
+          <!--auto check update on startup-->
+          <DockPanel>
+            <TextBlock
+              DockPanel.Dock="Left"
+              Classes="PropertyName"
+              Text="{x:Static r:Texts.IsAutoCheckUpdateEnabled}"/>
+            <CheckBox
+              Classes="PropertyValue"
+              IsChecked="{Binding Settings.IsAutoCheckUpdateEnabled}"/>
+          </DockPanel>
+
+          <!--update check repository-->
+          <DockPanel>
+            <TextBlock
+              DockPanel.Dock="Left"
+              Classes="PropertyName"
+              Text="{x:Static r:Texts.UpdateCheckRepository}"/>
+            <TextBox
+              Classes="PropertyValue"
+              Text="{Binding Settings.UpdateCheckRepository}"/>
+          </DockPanel>
+          <TextBlock
+            Text="{x:Static r:Texts.UpdateCheckRepositoryNote}"
+            TextWrapping="Wrap"
+            Margin="0, 2.5, 0, 0"/>
+        </StackPanel>
+      </Border>
+
       <!--game information-->
       <TextBlock
         Text="{x:Static r:Texts.GameInformation}"

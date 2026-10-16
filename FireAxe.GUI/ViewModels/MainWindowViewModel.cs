@@ -522,6 +522,8 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
 
     public Interaction<string, bool> ShowAutoDetectWorkshopItemLinkDialogInteraction { get; } = new();
 
+    public Interaction<string, Unit> ShowWorkshopCollectionLinkDetectedInteraction { get; } = new();
+
     public Interaction<string, bool> ConfirmOpenHigherVersionFileInteraction { get; } = new();
 
     public Interaction<WorkshopVpkAddon.DeleteRedundantVpkFilesReport, bool> ConfirmDeleteRedundantVpkFilesInteraction { get; } = new();
@@ -544,7 +546,10 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
         }
         _inited = true;
 
-        CheckUpdate(true);
+        if (_appSettings.IsAutoCheckUpdateEnabled)
+        {
+            CheckUpdate(true);
+        }
 
         // Try to open the LastOpenDirectory.
         var lastOpenDir = _appSettings.LastOpenDirectory;
@@ -729,7 +734,7 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
         string? latestVersion = null;
         try
         {
-            latestVersion = await AppGlobal.GetLatestVersionAsync(_httpClient, _checkUpdateCts.Token);
+            latestVersion = await AppGlobal.GetLatestVersionAsync(_appSettings.UpdateCheckRepository, _httpClient, _checkUpdateCts.Token);
         }
         catch (OperationCanceledException) { }
         if (activity == _checkUpdateActivity)
@@ -770,7 +775,7 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
             var reply = await ShowUpdateRequestInteraction.Handle(latestVersion);
             if (reply == UpdateRequestReply.GoToDownload)
             {
-                Utils.OpenWebsite(AppGlobal.GithubReleasesUrl);
+                Utils.OpenWebsite(AppGlobal.GetGithubReleasesUrl(_appSettings.UpdateCheckRepository));
             }
             else if (reply == UpdateRequestReply.Ignore)
             {
@@ -822,6 +827,23 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
                 {
                     if (PublishedFileUtils.TryParsePublishedFileIdLink(clipboardText, out var id))
                     {
+                        // A collection link can't be added as a single addon, so tell the user
+                        // how to import it instead of creating an addon that would fail to download.
+                        bool? isCollection = null;
+                        try
+                        {
+                            isCollection = await WorkshopCollectionUtils.IsWorkshopCollectionAsync(id, _httpClient, CancellationToken.None);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex, "Exception occurred during checking whether the published file is a collection.");
+                        }
+                        if (isCollection == true)
+                        {
+                            await ShowWorkshopCollectionLinkDetectedInteraction.Handle(clipboardText);
+                            return;
+                        }
+
                         bool confirm = await ShowAutoDetectWorkshopItemLinkDialogInteraction.Handle(clipboardText);
                         if (confirm)
                         {

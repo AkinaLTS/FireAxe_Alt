@@ -10,11 +10,13 @@ namespace FireAxe;
 
 public static class AppGlobal
 {
-    public const string GitHubApiUrl = "https://api.github.com/repos/ktxiaok/FireAxe";
-
-    public const string GithubReleasesUrl = "https://github.com/ktxiaok/FireAxe/releases";
+    public const string DefaultUpdateCheckRepository = "ktxiaok/FireAxe";
 
     public const string GithubRepoLink = "https://github.com/ktxiaok/FireAxe";
+
+    public static string GetGitHubApiUrl(string repository) => $"https://api.github.com/repos/{repository}";
+
+    public static string GetGithubReleasesUrl(string repository) => $"https://github.com/{repository}/releases";
 
     public const string License = "Apache-2.0 license";
 
@@ -24,9 +26,14 @@ public static class AppGlobal
 
     public const string ExportedAssetsDirectoryName = "ExportedAssets";
 
-    public static async Task<string?> GetLatestVersionAsync(HttpClient httpClient, CancellationToken cancellationToken)
+    public static async Task<string?> GetLatestVersionAsync(string repository, HttpClient httpClient, CancellationToken cancellationToken)
     {
-        var url = GitHubApiUrl + "/releases/latest";
+        if (string.IsNullOrWhiteSpace(repository))
+        {
+            return null;
+        }
+
+        var url = GetGitHubApiUrl(repository) + "/releases/latest";
         try
         {
             using var response = await httpClient.GetAsync(url, cancellationToken);

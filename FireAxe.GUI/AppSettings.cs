@@ -51,6 +51,8 @@ public sealed class AppSettings : ObservableObject, ISaveable, IDisposable
     private bool _ignoreHalfLife2FilesForVpkAddonConflicts = true;
     private bool _isAutoUpdateWorkshopItem = true;
     private string? _suppressedUpdateRequestVersion = null;
+    private bool _isAutoCheckUpdateEnabled = true;
+    private string _updateCheckRepository = AppGlobal.DefaultUpdateCheckRepository;
     private bool _isAutoDetectWorkshopItemLinkInClipboard = true;
     private bool _isAutoRedownload = false;
     private Uri? _webProxyUri = null;
@@ -342,6 +344,65 @@ public sealed class AppSettings : ObservableObject, ISaveable, IDisposable
                 RequestSave = true;
             }
         }
+    }
+
+    [JsonProperty]
+    public bool IsAutoCheckUpdateEnabled
+    {
+        get => _isAutoCheckUpdateEnabled;
+        set
+        {
+            if (NotifyAndSetIfChanged(ref _isAutoCheckUpdateEnabled, value))
+            {
+                RequestSave = true;
+            }
+        }
+    }
+
+    [AllowNull]
+    [JsonProperty]
+    public string UpdateCheckRepository
+    {
+        get => _updateCheckRepository;
+        set
+        {
+            value = NormalizeRepository(value);
+            if (value == _updateCheckRepository)
+            {
+                return;
+            }
+
+            _updateCheckRepository = value;
+            NotifyChanged();
+            RequestSave = true;
+        }
+    }
+
+    // Accepts "owner/name", and also tolerates a pasted GitHub url or stray slashes and whitespace.
+    private static string NormalizeRepository(string? value)
+    {
+        value ??= "";
+        value = value.Trim();
+
+        const string UrlPrefix = "https://github.com/";
+        const string HttpUrlPrefix = "http://github.com/";
+        if (value.StartsWith(UrlPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            value = value.Substring(UrlPrefix.Length);
+        }
+        else if (value.StartsWith(HttpUrlPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            value = value.Substring(HttpUrlPrefix.Length);
+        }
+
+        value = value.Trim('/');
+
+        var segments = value.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length < 2)
+        {
+            return AppGlobal.DefaultUpdateCheckRepository;
+        }
+        return $"{segments[0]}/{segments[1]}";
     }
 
     [JsonProperty]

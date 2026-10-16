@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Frozen;
+using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
@@ -11,9 +13,33 @@ public static class PublishedFileUtils
 {
     private static readonly Regex s_publishedFileIdLinkRegex = new(@"steamcommunity\.com/(?:sharedfiles|workshop)/filedetails/\?.*id=(\d+)");
 
+    private static readonly FrozenSet<string> s_imageFileExtensions = FrozenSet.ToFrozenSet(
+        [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"], StringComparer.OrdinalIgnoreCase);
+
+    // A workshop collection (or any entry whose payload is an image rather than a downloadable file)
+    // is not a valid addon target. Collections return a preview image url and file name here.
+    private static bool IsCollectionOrImage(PublishedFileDetails details)
+    {
+        if (details.FileUrl.Length == 0)
+        {
+            return false;
+        }
+
+        var fileNameExtension = Path.GetExtension(details.FileName);
+        if (fileNameExtension.Length > 0 && s_imageFileExtensions.Contains(fileNameExtension))
+        {
+            return true;
+        }
+
+        return Uri.TryCreate(details.FileUrl, UriKind.Absolute, out var uri)
+            && uri.Host.StartsWith("images.", StringComparison.OrdinalIgnoreCase)
+            && uri.Host.EndsWith(".steamusercontent.com", StringComparison.OrdinalIgnoreCase);
+    }
+
     public static async Task<GetPublishedFileDetailsResult> GetPublishedFileDetailsAsync(ulong publishedFileId, HttpClient httpClient, CancellationToken cancellationToken)
     {
         PublishedFileDetails? content = null;
+        PublishedFileDetails? collectionOrImageContent = null;
         GetPublishedFileDetailsResultStatus status = GetPublishedFileDetailsResultStatus.Failed;
 
         try
@@ -38,7 +64,18 @@ public static class PublishedFileUtils
                                 {
                                     if (element.TryGetValue("consumer_app_id", out var consumerAppIdToken) && consumerAppIdToken.Type == JTokenType.Integer && (int)consumerAppIdToken == 550)
                                     {
-                                        content = element.ToObject<PublishedFileDetails>();
+                                        var details = element.ToObject<PublishedFileDetails>()!;
+                                        if (IsCollectionOrImage(details))
+                                        {
+                                            status = GetPublishedFileDetailsResultStatus.InvalidPublishedFileId;
+                                            // Keep the details so callers that only need metadata (e.g. a collection title)
+                                            // can still use them, while the status marks it as not downloadable.
+                                            collectionOrImageContent = details;
+                                        }
+                                        else
+                                        {
+                                            content = details;
+                                        }
                                     }
                                     else
                                     {
@@ -69,7 +106,7 @@ public static class PublishedFileUtils
         {
             status = GetPublishedFileDetailsResultStatus.Succeeded;
         }
-        return new GetPublishedFileDetailsResult(content, status);
+        return new GetPublishedFileDetailsResult(content ?? collectionOrImageContent, content != null, status);
     }
 
     public static bool TryParsePublishedFileId(string input, out ulong id)
@@ -113,16 +150,34 @@ public class GetPublishedFileDetailsResult
     private PublishedFileDetails? _content;
     private GetPublishedFileDetailsResultStatus _status;
 
-    internal GetPublishedFileDetailsResult(PublishedFileDetails? content, GetPublishedFileDetailsResultStatus status)
+    internal GetPublishedFileDetailsResult(PublishedFileDetails? content, bool isDownloadable, GetPublishedFileDetailsResultStatus status)
     {
         if (status == GetPublishedFileDetailsResultStatus.Succeeded && content == null)
         {
             throw new ArgumentNullException(nameof(content));
         }
+        if (isDownloadable && status != GetPublishedFileDetailsResultStatus.Succeeded)
+        {
+            throw new ArgumentException($"A downloadable result must be {nameof(GetPublishedFileDetailsResultStatus.Succeeded)}.", nameof(isDownloadable));
+        }
 
         _content = content;
+        IsDownloadable = isDownloadable;
         _status = status;
     }
+
+    /// <summary>
+    /// The parsed details. Available for any item the API returned usable data for,
+    /// including collections and image entries, so callers can read metadata such as the title.
+    /// May be null when the request failed or the id was truly invalid.
+    /// </summary>
+    public PublishedFileDetails? Details => _content;
+
+    /// <summary>
+    /// Whether the item is an actual downloadable addon (a VPK), as opposed to a
+    /// collection or an image-only entry which must not be treated as an addon.
+    /// </summary>
+    public bool IsDownloadable { get; }
 
     public PublishedFileDetails Content
     {

@@ -262,6 +262,14 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         })
         .DisposeWith(disposables);
 
+        viewModel.ShowWorkshopCollectionLinkDetectedInteraction.RegisterHandler(async (context) =>
+        {
+            var link = context.Input;
+            await CommonMessageBoxes.ShowInfo(this, string.Format(Texts.WorkshopCollectionLinkDetectedMessage, link), Texts.Warning);
+            context.SetOutput(Unit.Default);
+        })
+        .DisposeWith(disposables);
+
         viewModel.ConfirmOpenHigherVersionFileInteraction.RegisterHandler(async (context) =>
         {
             var path = context.Input;
