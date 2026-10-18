@@ -38,6 +38,7 @@
       
       <MenuItem Header="{x:Static r:Texts.Operations}">
         <MenuItem Header="{x:Static r:Texts.Push}" Command="{Binding PushCommand}" ToolTip.Tip="{x:Static r:Texts.PushTip}"/>
+        <MenuItem Header="{x:Static r:Texts.RunGame}" Command="{Binding RunGameCommand}" ToolTip.Tip="{x:Static r:Texts.RunGameTip}"/>
         <MenuItem Header="{x:Static r:Texts.Check}" Command="{Binding CheckCommand}" ToolTip.Tip="{x:Static r:Texts.CheckAllTip}"/>
         <MenuItem Header="{x:Static r:Texts.ClearCaches}" Command="{Binding ClearCachesCommand}" ToolTip.Tip="{x:Static r:Texts.ClearAllCachesTip}"/>
         <MenuItem Header="{x:Static r:Texts.RandomlySelect}" Command="{Binding RandomlySelectCommand}" ToolTip.Tip="{x:Static r:Texts.RandomlySelectTip}"/>

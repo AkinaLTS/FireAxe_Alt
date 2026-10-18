@@ -579,6 +579,21 @@
   <data name="PushTip" xml:space="preserve">
     <value>推送所有模组的启用状态给游戏。</value>
   </data>
+  <data name="RunGame" xml:space="preserve">
+    <value>启动游戏</value>
+  </data>
+  <data name="RunGameTip" xml:space="preserve">
+    <value>使用在 Steam 中配置的启动参数启动游戏。</value>
+  </data>
+  <data name="GameExecutableNotFoundMessage" xml:space="preserve">
+    <value>未在此路径找到游戏可执行文件：{0}。请检查设置中的游戏路径。</value>
+  </data>
+  <data name="CannotReadSteamLaunchOptionsMessage" xml:space="preserve">
+    <value>无法读取在 Steam 中配置的启动参数。请检查 Steam 是否已安装以及游戏路径是否正确。</value>
+  </data>
+  <data name="CannotStartGameMessage" xml:space="preserve">
+    <value>无法启动游戏。</value>
+  </data>
   <data name="RandomlySelect" xml:space="preserve">
     <value>随机选择</value>
   </data>

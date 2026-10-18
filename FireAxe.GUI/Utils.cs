@@ -1,6 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
+using FireAxe.Resources;
 using ReactiveUI;
 using Serilog;
 using System;
@@ -128,6 +129,52 @@ internal static class Utils
     public static void OpenWorkshopPage(ulong publishedFileId)
     {
         OpenWebsite($"https://steamcommunity.com/sharedfiles/filedetails/?id={publishedFileId}");
+    }
+
+    /// <summary>
+    /// Runs the game from the given game directory, applying the launch options configured in Steam.
+    /// Returns null on success, or an error message describing why it failed.
+    /// </summary>
+    public static string? RunGame(string gamePath)
+    {
+        ArgumentNullException.ThrowIfNull(gamePath);
+
+        var executablePath = SteamUtils.GetGameExecutablePath(gamePath);
+        if (!File.Exists(executablePath))
+        {
+            return string.Format(Texts.GameExecutableNotFoundMessage, executablePath);
+        }
+
+        var launchOptions = SteamUtils.TryGetLaunchOptions(SteamUtils.Left4Dead2AppId);
+        if (launchOptions is null)
+        {
+            return Texts.CannotReadSteamLaunchOptionsMessage;
+        }
+
+        try
+        {
+            var startInfo = new ProcessStartInfo(executablePath)
+            {
+                WorkingDirectory = gamePath,
+                UseShellExecute = false,
+            };
+            foreach (var argument in SteamUtils.ParseArgumentString(launchOptions))
+            {
+                startInfo.ArgumentList.Add(argument);
+            }
+
+            using var process = Process.Start(startInfo);
+            if (process is null)
+            {
+                return Texts.CannotStartGameMessage;
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"Exception occurred during {nameof(Utils)}.{nameof(RunGame)}.");
+            return ex.Message;
+        }
     }
 
     public static void ShowInFileExplorer(string path, bool openDir = false)

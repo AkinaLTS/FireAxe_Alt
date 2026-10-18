@@ -3,6 +3,7 @@
 - fix: a workshop collection is no longer treated as a downloadable addon (it was downloaded as an image file)
 - fix: an empty download url now produces an explicit download failed problem
 - add: a hint is shown when a copied workshop link points to a collection instead of an item
+- add: new operation: Run Game (launches the game with the launch options configured in Steam)
 - add: settings to enable/disable the startup update check and to specify the update check repository
 # v0.7.3
 - change: UI Appearance (use Semi Theme) (thanks @TiO2EvoLve)

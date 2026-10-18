@@ -270,6 +270,13 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         })
         .DisposeWith(disposables);
 
+        viewModel.ShowRunGameFailedInteraction.RegisterHandler(async (context) =>
+        {
+            await CommonMessageBoxes.ShowError(this, context.Input, Texts.Error);
+            context.SetOutput(Unit.Default);
+        })
+        .DisposeWith(disposables);
+
         viewModel.ConfirmOpenHigherVersionFileInteraction.RegisterHandler(async (context) =>
         {
             var path = context.Input;

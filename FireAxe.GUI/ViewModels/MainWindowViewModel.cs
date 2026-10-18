@@ -224,6 +224,7 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
 
         OpenAboutWindowCommand = ReactiveCommand.Create(() => _windowManager.OpenAboutWindow());
         CheckUpdateCommand = ReactiveCommand.Create(() => CheckUpdate(false));
+        RunGameCommand = ReactiveCommand.CreateFromTask(RunGameAsync, _addonRootNotNullObservable);
 
         _appSettings.WhenAnyValue(x => x.GamePath)
             .CombineLatest(this.WhenAnyValue(x => x.AddonRoot))
@@ -492,6 +493,8 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
 
     public ReactiveCommand<Unit, Unit> CheckUpdateCommand { get; }
 
+    public ReactiveCommand<Unit, Unit> RunGameCommand { get; }
+
     public Interaction<Exception, Unit> ShowExceptionInteraction { get; } = new();
 
     public Interaction<Unit, string?> ChooseOpenDirectoryInteraction { get; } = new();
@@ -523,6 +526,8 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
     public Interaction<string, bool> ShowAutoDetectWorkshopItemLinkDialogInteraction { get; } = new();
 
     public Interaction<string, Unit> ShowWorkshopCollectionLinkDetectedInteraction { get; } = new();
+
+    public Interaction<string, Unit> ShowRunGameFailedInteraction { get; } = new();
 
     public Interaction<string, bool> ConfirmOpenHigherVersionFileInteraction { get; } = new();
 
@@ -678,6 +683,27 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
             return;
         }
         await ShowPushSuccessInteraction.Handle(Unit.Default);
+    }
+
+    private async Task RunGameAsync()
+    {
+        if (_addonRoot is null)
+        {
+            return;
+        }
+
+        var gamePath = _addonRoot.GamePath;
+        if (gamePath.Length == 0 || !GamePathUtils.CheckValidity(gamePath))
+        {
+            await ShowInvalidGamePathInteraction.Handle(gamePath);
+            return;
+        }
+
+        var errorMessage = Utils.RunGame(gamePath);
+        if (errorMessage is not null)
+        {
+            await ShowRunGameFailedInteraction.Handle(errorMessage);
+        }
     }
 
     public void Check()

@@ -420,6 +420,24 @@ namespace FireAxe.Resources {
                 return ResourceManager.GetString("Cancel", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The launch options configured in Steam could not be read. Please check that Steam is installed and that the game path is correct..
+        /// </summary>
+        public static string CannotReadSteamLaunchOptionsMessage {
+            get {
+                return ResourceManager.GetString("CannotReadSteamLaunchOptionsMessage", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The game could not be started..
+        /// </summary>
+        public static string CannotStartGameMessage {
+            get {
+                return ResourceManager.GetString("CannotStartGameMessage", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Cancel Move.
@@ -1501,6 +1519,15 @@ namespace FireAxe.Resources {
                 return ResourceManager.GetString("GameInformation", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The game executable was not found at: {0}. Please check the game path in the settings..
+        /// </summary>
+        public static string GameExecutableNotFoundMessage {
+            get {
+                return ResourceManager.GetString("GameExecutableNotFoundMessage", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Game Path.
@@ -2484,6 +2511,24 @@ namespace FireAxe.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Run Game.
+        /// </summary>
+        public static string RunGame {
+            get {
+                return ResourceManager.GetString("RunGame", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Run the game using the launch options configured in Steam..
+        /// </summary>
+        public static string RunGameTip {
+            get {
+                return ResourceManager.GetString("RunGameTip", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Randomly Select.
         /// </summary>
         public static string RandomlySelect {
@@ -2491,7 +2536,7 @@ namespace FireAxe.Resources {
                 return ResourceManager.GetString("RandomlySelect", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Randomly enable a child item in groups where the strategy of enablement is &quot;Random Single&quot;..
         /// </summary>
