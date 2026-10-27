@@ -1,3 +1,8 @@
+# v0.7.5
+- fix: the launch options configured in Steam could not be read after a Steam update (the config file now contains json-like values)
+- add: new setting: custom launch options (when set, they are used instead of the launch options configured in Steam)
+- add: when the launch options can't be read, the user can choose whether to still run the game
+- add: settings to control download speed (parallel chunked download, chunk count, max concurrent downloads)
 # v0.7.4
 - fix: workshop item downloads fail when importing a large collection (reduce download concurrency)
 - fix: a workshop collection is no longer treated as a downloadable addon (it was downloaded as an image file)

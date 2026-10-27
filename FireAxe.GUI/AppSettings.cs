@@ -10,6 +10,7 @@ using System.IO;
 using System.Net;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
+using System.Reactive.Linq;
 using System.Collections.Frozen;
 using System.Reactive;
 using System.Collections.Generic;
@@ -59,6 +60,10 @@ public sealed class AppSettings : ObservableObject, ISaveable, IDisposable
     private bool _isFileBackupEnabled = true;
     private int _maxRetainedBackupFileCount = 25;
     private int _fileBackupIntervalMinutes = 30;
+    private string _customLaunchOptions = "";
+    private bool _isParallelDownloadEnabled = true;
+    private int _downloadChunkCount = 4;
+    private int _maxConcurrentDownloads = 3;
 
     private FrozenSet<string>? _customVpkAddonConflictIgnoringFiles = null;
     private readonly object _customVpkAddonConflictIgnoringFilesLock = new();
@@ -78,6 +83,18 @@ public sealed class AppSettings : ObservableObject, ISaveable, IDisposable
         this.WhenAnyValue(x => x.ColorTheme)
             .Subscribe(_ => RequestSave = true);
 
+        // Keep the download service in sync with the download-related settings.
+        this.WhenAnyValue(
+                x => x.IsParallelDownloadEnabled,
+                x => x.DownloadChunkCount,
+                x => x.MaxConcurrentDownloads,
+                x => x.WebProxyAddress,
+                x => x.WebProxyCredentialUserName,
+                x => x.WebProxyCredentialPassword)
+            .Throttle(TimeSpan.FromMilliseconds(300))
+            .Subscribe(_ => DownloadService?.Settings = this.GetDownloadServiceSettings())
+            .DisposeWith(_disposables);
+
         LoadCustomVpkAddonConflictIgnoringFilesCommand = ReactiveCommand.CreateFromTask(LoadCustomVpkAddonConflictIgnoringFilesAsync);
 
         LoadFile();
@@ -85,6 +102,22 @@ public sealed class AppSettings : ObservableObject, ISaveable, IDisposable
     }
 
     public bool RequestSave { get; set; } = true;
+
+    /// <summary>
+    /// The download service to keep in sync with the download settings. Set once after construction.
+    /// </summary>
+    public DownloadService? DownloadService
+    {
+        get => field;
+        set
+        {
+            field = value;
+            if (value is not null)
+            {
+                value.Settings = this.GetDownloadServiceSettings();
+            }
+        }
+    }
 
     public string SettingsFilePath => _settingsFilePath;
 
@@ -425,6 +458,74 @@ public sealed class AppSettings : ObservableObject, ISaveable, IDisposable
         set
         {
             if (NotifyAndSetIfChanged(ref _isAutoRedownload, value))
+            {
+                RequestSave = true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Launch options to use when running the game. When empty, the options configured in Steam are used.
+    /// </summary>
+    [AllowNull]
+    [JsonProperty]
+    public string CustomLaunchOptions
+    {
+        get => _customLaunchOptions;
+        set
+        {
+            value ??= "";
+            if (NotifyAndSetIfChanged(ref _customLaunchOptions, value))
+            {
+                RequestSave = true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether a single download is split into multiple parallel chunks.
+    /// </summary>
+    [JsonProperty]
+    public bool IsParallelDownloadEnabled
+    {
+        get => _isParallelDownloadEnabled;
+        set
+        {
+            if (NotifyAndSetIfChanged(ref _isParallelDownloadEnabled, value))
+            {
+                RequestSave = true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The number of parallel chunks per download when <see cref="IsParallelDownloadEnabled"/> is on.
+    /// </summary>
+    [JsonProperty]
+    public int DownloadChunkCount
+    {
+        get => _downloadChunkCount;
+        set
+        {
+            value = Math.Clamp(value, 1, 16);
+            if (NotifyAndSetIfChanged(ref _downloadChunkCount, value))
+            {
+                RequestSave = true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The maximum number of downloads that run at the same time.
+    /// </summary>
+    [JsonProperty]
+    public int MaxConcurrentDownloads
+    {
+        get => _maxConcurrentDownloads;
+        set
+        {
+            value = Math.Clamp(value, 1, 16);
+            if (NotifyAndSetIfChanged(ref _maxConcurrentDownloads, value))
             {
                 RequestSave = true;
             }

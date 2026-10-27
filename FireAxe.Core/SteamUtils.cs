@@ -15,6 +15,13 @@ public static class SteamUtils
     private const string LocalConfigFileName = "localconfig.vdf";
     private const string LaunchOptionsKey = "LaunchOptions";
 
+    // Recent Steam builds write json-like values containing backslash-escaped quotes
+    // (for example "key" "\"value\""), which the default key-values parser rejects.
+    private static readonly KVSerializerOptions s_kvOptions = new()
+    {
+        HasEscapeSequences = true
+    };
+
     /// <summary>
     /// Finds the Steam installation directory, or null when it can't be determined.
     /// </summary>
@@ -113,7 +120,7 @@ public static class SteamUtils
         {
             using var stream = File.OpenRead(configFilePath);
             var serializer = KVSerializer.Create(KVSerializationFormat.KeyValues1Text);
-            root = serializer.Deserialize(stream);
+            root = serializer.Deserialize(stream, s_kvOptions);
         }
         catch (Exception ex)
         {

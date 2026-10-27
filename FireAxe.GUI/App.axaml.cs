@@ -59,7 +59,13 @@ public partial class App : Application
                     .AddSingleton<SaveManager>()
                     .AddSingleton<IAppWindowManager, AppWindowManager>()
                     .AddSingleton<IDownloadService, DownloadService>(
-                        services => new DownloadService(services.GetRequiredService<AppSettings>().GetDownloadServiceSettings()))
+                        services =>
+                        {
+                            var appSettings = services.GetRequiredService<AppSettings>();
+                            var downloadService = new DownloadService(appSettings.GetDownloadServiceSettings());
+                            appSettings.DownloadService = downloadService;
+                            return downloadService;
+                        })
                     .AddSingleton<HttpClient>(services =>
                     {
                         var appSettings = services.GetRequiredService<AppSettings>();

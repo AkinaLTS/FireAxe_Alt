@@ -589,10 +589,28 @@
     <value>未在此路径找到游戏可执行文件：{0}。请检查设置中的游戏路径。</value>
   </data>
   <data name="CannotReadSteamLaunchOptionsMessage" xml:space="preserve">
-    <value>无法读取在 Steam 中配置的启动参数。请检查 Steam 是否已安装以及游戏路径是否正确。</value>
+    <value>无法读取在 Steam 中配置的启动参数（可能未安装 Steam，或从未设置过启动参数）。是否仍要启动游戏（不使用启动参数）？</value>
   </data>
   <data name="CannotStartGameMessage" xml:space="preserve">
     <value>无法启动游戏。</value>
+  </data>
+  <data name="CustomLaunchOptions" xml:space="preserve">
+    <value>自定义启动参数</value>
+  </data>
+  <data name="CustomLaunchOptionsNote" xml:space="preserve">
+    <value>留空则使用在 Steam 中配置的启动参数。</value>
+  </data>
+  <data name="IsParallelDownloadEnabled" xml:space="preserve">
+    <value>启用分片并行下载</value>
+  </data>
+  <data name="DownloadChunkCount" xml:space="preserve">
+    <value>每个下载的分片数</value>
+  </data>
+  <data name="MaxConcurrentDownloads" xml:space="preserve">
+    <value>最大同时下载数</value>
+  </data>
+  <data name="DownloadSpeedNote" xml:space="preserve">
+    <value>数值越大下载越快，但连接数过多时服务器可能会限速。</value>
   </data>
   <data name="RandomlySelect" xml:space="preserve">
     <value>随机选择</value>

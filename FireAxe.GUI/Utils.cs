@@ -132,23 +132,18 @@ internal static class Utils
     }
 
     /// <summary>
-    /// Runs the game from the given game directory, applying the launch options configured in Steam.
+    /// Runs the game from the given game directory with the given launch options.
     /// Returns null on success, or an error message describing why it failed.
     /// </summary>
-    public static string? RunGame(string gamePath)
+    public static string? RunGame(string gamePath, string launchOptions)
     {
         ArgumentNullException.ThrowIfNull(gamePath);
+        ArgumentNullException.ThrowIfNull(launchOptions);
 
         var executablePath = SteamUtils.GetGameExecutablePath(gamePath);
         if (!File.Exists(executablePath))
         {
             return string.Format(Texts.GameExecutableNotFoundMessage, executablePath);
-        }
-
-        var launchOptions = SteamUtils.TryGetLaunchOptions(SteamUtils.Left4Dead2AppId);
-        if (launchOptions is null)
-        {
-            return Texts.CannotReadSteamLaunchOptionsMessage;
         }
 
         try

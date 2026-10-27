@@ -758,6 +758,24 @@ namespace FireAxe.Resources {
         ///   Looks up a localized string similar to You can customize VPK addon conflict ignoring files in this directory: 
         ///{0}.
         /// </summary>
+        /// <summary>
+        ///   Looks up a localized string similar to Custom launch options.
+        /// </summary>
+        public static string CustomLaunchOptions {
+            get {
+                return ResourceManager.GetString("CustomLaunchOptions", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Leave empty to use the launch options configured in Steam..
+        /// </summary>
+        public static string CustomLaunchOptionsNote {
+            get {
+                return ResourceManager.GetString("CustomLaunchOptionsNote", resourceCulture);
+            }
+        }
+
         public static string CustomizeVpkAddonConflictIgnoringFilesNote {
             get {
                 return ResourceManager.GetString("CustomizeVpkAddonConflictIgnoringFilesNote", resourceCulture);
@@ -932,6 +950,24 @@ namespace FireAxe.Resources {
         public static string Download {
             get {
                 return ResourceManager.GetString("Download", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Chunk count per download.
+        /// </summary>
+        public static string DownloadChunkCount {
+            get {
+                return ResourceManager.GetString("DownloadChunkCount", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Larger values download faster, but the server may throttle too many connections..
+        /// </summary>
+        public static string DownloadSpeedNote {
+            get {
+                return ResourceManager.GetString("DownloadSpeedNote", resourceCulture);
             }
         }
         
@@ -1917,6 +1953,15 @@ namespace FireAxe.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Enable parallel chunked download.
+        /// </summary>
+        public static string IsParallelDownloadEnabled {
+            get {
+                return ResourceManager.GetString("IsParallelDownloadEnabled", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to &quot;{0}&quot; failed to import: {1}.
         /// </summary>
         public static string ItemFailedToImportWithError {
@@ -2006,6 +2051,15 @@ namespace FireAxe.Resources {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to Max concurrent downloads.
+        /// </summary>
+        public static string MaxConcurrentDownloads {
+            get {
+                return ResourceManager.GetString("MaxConcurrentDownloads", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Max Retained Backup File Count.
         /// </summary>

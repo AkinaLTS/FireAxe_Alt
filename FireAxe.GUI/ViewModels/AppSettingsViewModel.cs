@@ -41,6 +41,10 @@ public class AppSettingsViewModel : ViewModelBase, IActivatableViewModel
                 .Subscribe(_ => this.RaisePropertyChanged(nameof(MaxRetainedBackupFileCount)));
             _settings.WhenAnyValue(x => x.FileBackupIntervalMinutes)
                 .Subscribe(_ => this.RaisePropertyChanged(nameof(FileBackupIntervalMinutes)));
+            _settings.WhenAnyValue(x => x.DownloadChunkCount)
+                .Subscribe(_ => this.RaisePropertyChanged(nameof(DownloadChunkCount)));
+            _settings.WhenAnyValue(x => x.MaxConcurrentDownloads)
+                .Subscribe(_ => this.RaisePropertyChanged(nameof(MaxConcurrentDownloads)));
         });
 
         ShowSettingsFileCommand = ReactiveCommand.Create(() => Utils.ShowInFileExplorer(_settings.SettingsFilePath));
@@ -135,6 +139,34 @@ public class AppSettingsViewModel : ViewModelBase, IActivatableViewModel
             }
 
             _settings.FileBackupIntervalMinutes = minutes;
+        }
+    }
+
+    public string DownloadChunkCount
+    {
+        get => _settings.DownloadChunkCount.ToString();
+        set
+        {
+            if (!int.TryParse(value, out int count))
+            {
+                throw new ArgumentException(Texts.ValueMustBeInteger);
+            }
+
+            _settings.DownloadChunkCount = count;
+        }
+    }
+
+    public string MaxConcurrentDownloads
+    {
+        get => _settings.MaxConcurrentDownloads.ToString();
+        set
+        {
+            if (!int.TryParse(value, out int count))
+            {
+                throw new ArgumentException(Texts.ValueMustBeInteger);
+            }
+
+            _settings.MaxConcurrentDownloads = count;
         }
     }
 

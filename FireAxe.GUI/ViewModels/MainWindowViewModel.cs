@@ -529,6 +529,8 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
 
     public Interaction<string, Unit> ShowRunGameFailedInteraction { get; } = new();
 
+    public Interaction<Unit, bool> ShowCannotReadLaunchOptionsInteraction { get; } = new();
+
     public Interaction<string, bool> ConfirmOpenHigherVersionFileInteraction { get; } = new();
 
     public Interaction<WorkshopVpkAddon.DeleteRedundantVpkFilesReport, bool> ConfirmDeleteRedundantVpkFilesInteraction { get; } = new();
@@ -699,7 +701,28 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
             return;
         }
 
-        var errorMessage = Utils.RunGame(gamePath);
+        string? launchOptions;
+        var customLaunchOptions = _appSettings.CustomLaunchOptions;
+        if (customLaunchOptions.Length > 0)
+        {
+            launchOptions = customLaunchOptions;
+        }
+        else
+        {
+            launchOptions = SteamUtils.TryGetLaunchOptions(SteamUtils.Left4Dead2AppId);
+            if (launchOptions is null)
+            {
+                // The steam launch options couldn't be read; let the user decide instead of refusing.
+                bool confirm = await ShowCannotReadLaunchOptionsInteraction.Handle(Unit.Default);
+                if (!confirm)
+                {
+                    return;
+                }
+                launchOptions = "";
+            }
+        }
+
+        var errorMessage = Utils.RunGame(gamePath, launchOptions);
         if (errorMessage is not null)
         {
             await ShowRunGameFailedInteraction.Handle(errorMessage);

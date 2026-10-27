@@ -277,6 +277,13 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         })
         .DisposeWith(disposables);
 
+        viewModel.ShowCannotReadLaunchOptionsInteraction.RegisterHandler(async (context) =>
+        {
+            bool confirm = await CommonMessageBoxes.Confirm(this, Texts.CannotReadSteamLaunchOptionsMessage, Texts.Warning);
+            context.SetOutput(confirm);
+        })
+        .DisposeWith(disposables);
+
         viewModel.ConfirmOpenHigherVersionFileInteraction.RegisterHandler(async (context) =>
         {
             var path = context.Input;

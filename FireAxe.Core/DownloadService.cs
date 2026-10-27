@@ -39,7 +39,7 @@ public sealed class DownloadService : IDownloadService
 
         private Downloader.DownloadService? _download = null;
 
-        private bool _downloadCountBorrowed = false;
+        private bool _downloadSlotHeld = false;
 
         private readonly object _downloadLock = new();
 
@@ -99,12 +99,13 @@ public sealed class DownloadService : IDownloadService
                             }
                         }
 
-                        var availableDownloads = _service._availableDownloads;
-                        if (await availableDownloads.WaitAsync(100).ConfigureAwait(false))
+                        if (_service.TryAcquireDownloadSlot())
                         {
-                            _downloadCountBorrowed = true;
+                            _downloadSlotHeld = true;
                             break;
                         }
+
+                        await Task.Delay(100).ConfigureAwait(false);
                     }
 
                     lock (_downloadLock)
@@ -424,10 +425,10 @@ public sealed class DownloadService : IDownloadService
                     return;
                 }
 
-                if (_downloadCountBorrowed)
+                if (_downloadSlotHeld)
                 {
-                    _service._availableDownloads.Release();
-                    _downloadCountBorrowed = false;
+                    _downloadSlotHeld = false;
+                    _service.ReleaseDownloadSlot();
                 }
 
                 Monitor.PulseAll(_downloadLock);
@@ -478,7 +479,9 @@ public sealed class DownloadService : IDownloadService
     private readonly object _downloadItemsLock = new();
     private readonly HashSet<DownloadItem> _activeDownloadItems = new();
 
-    private readonly SemaphoreSlim _availableDownloads = new(3);
+    private readonly object _concurrencyLock = new();
+    private int _runningDownloads = 0;
+    private int _maxConcurrentDownloads = 3;
 
     public DownloadService(DownloadServiceSettings settings)
     {
@@ -498,13 +501,45 @@ public sealed class DownloadService : IDownloadService
 
                 _downloaderConfig = new()
                 {
-                    ChunkCount = 1,
-                    ParallelDownload = false
+                    ChunkCount = Math.Max(1, _settings.ChunkCount),
+                    ParallelDownload = _settings.IsParallelDownloadEnabled && _settings.ChunkCount > 1
                 };
                 if (_settings.Proxy is { } proxy)
                 {
                     _downloaderConfig.RequestConfiguration.Proxy = proxy;
                 }
+            }
+
+            lock (_concurrencyLock)
+            {
+                _maxConcurrentDownloads = Math.Clamp(_settings.MaxConcurrentDownloads, 1, 16);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Tries to take a concurrency slot for a download. Returns false when the limit is currently full.
+    /// </summary>
+    internal bool TryAcquireDownloadSlot()
+    {
+        lock (_concurrencyLock)
+        {
+            if (_runningDownloads >= _maxConcurrentDownloads)
+            {
+                return false;
+            }
+            _runningDownloads++;
+            return true;
+        }
+    }
+
+    internal void ReleaseDownloadSlot()
+    {
+        lock (_concurrencyLock)
+        {
+            if (_runningDownloads > 0)
+            {
+                _runningDownloads--;
             }
         }
     }
@@ -558,8 +593,6 @@ public sealed class DownloadService : IDownloadService
                 downloadItemDisposeTasks[i] = Task.Run(downloadItem.Dispose);
             }
             await Task.WhenAll(downloadItemDisposeTasks).ConfigureAwait(false);
-
-            _availableDownloads.Dispose();
         }
     }
 

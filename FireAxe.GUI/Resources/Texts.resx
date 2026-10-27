@@ -589,10 +589,28 @@
     <value>The game executable was not found at: {0}. Please check the game path in the settings.</value>
   </data>
   <data name="CannotReadSteamLaunchOptionsMessage" xml:space="preserve">
-    <value>The launch options configured in Steam could not be read. Please check that Steam is installed and that the game path is correct.</value>
+    <value>The launch options configured in Steam could not be read (Steam may not be installed, or the launch options were never set). Do you want to run the game anyway, without launch options?</value>
   </data>
   <data name="CannotStartGameMessage" xml:space="preserve">
     <value>The game could not be started.</value>
+  </data>
+  <data name="CustomLaunchOptions" xml:space="preserve">
+    <value>Custom launch options</value>
+  </data>
+  <data name="CustomLaunchOptionsNote" xml:space="preserve">
+    <value>Leave empty to use the launch options configured in Steam.</value>
+  </data>
+  <data name="IsParallelDownloadEnabled" xml:space="preserve">
+    <value>Enable parallel chunked download</value>
+  </data>
+  <data name="DownloadChunkCount" xml:space="preserve">
+    <value>Chunk count per download</value>
+  </data>
+  <data name="MaxConcurrentDownloads" xml:space="preserve">
+    <value>Max concurrent downloads</value>
+  </data>
+  <data name="DownloadSpeedNote" xml:space="preserve">
+    <value>Larger values download faster, but the server may throttle too many connections.</value>
   </data>
   <data name="RandomlySelect" xml:space="preserve">
     <value>Randomly Select</value>

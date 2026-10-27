@@ -41,7 +41,10 @@ public static class AppSettingsExtensions
 
         return new DownloadServiceSettings
         {
-            Proxy = appSettings.GetWebProxy()
+            Proxy = appSettings.GetWebProxy(),
+            IsParallelDownloadEnabled = appSettings.IsParallelDownloadEnabled,
+            ChunkCount = appSettings.DownloadChunkCount,
+            MaxConcurrentDownloads = appSettings.MaxConcurrentDownloads
         };
     }
 }
