@@ -1,4 +1,4 @@
-﻿using Avalonia.Threading;
+using Avalonia.Threading;
 using ReactiveUI;
 using Serilog;
 using System;
@@ -174,6 +174,7 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
         OpenDownloadListWindowCommand = ReactiveCommand.Create(() => _windowManager.OpenDownloadListWindow());
         OpenTagManagerWindowCommand = ReactiveCommand.Create(() => _windowManager.OpenTagManagerWindow(), _addonRootNotNullObservable);
         OpenVpkConflictListWindowCommand = ReactiveCommand.Create(() => _windowManager.OpenVpkConflictListWindow(), _addonRootNotNullObservable);
+        OpenReplacementOverviewWindowCommand = ReactiveCommand.Create(() => _windowManager.OpenReplacementOverviewWindow(), _addonRootNotNullObservable);
         OpenWorkshopVpkFinderWindowCommand = ReactiveCommand.Create(() => _windowManager.OpenWorkshopVpkFinderWindow());
         OpenFileCleanerWindowCommand = ReactiveCommand.Create(() => _windowManager.OpenFileCleanerWindow(), _addonRootNotNullObservable);
         OpenAddonNameAutoSetterWindowCommand = ReactiveCommand.Create(() => _windowManager.OpenAddonNameAutoSetterWindow(), _addonRootNotNullObservable);
@@ -460,6 +461,8 @@ public sealed class MainWindowViewModel : ViewModelBase, IActivatableViewModel, 
     public ReactiveCommand<Unit, Unit> OpenTagManagerWindowCommand { get; }
 
     public ReactiveCommand<Unit, Unit> OpenVpkConflictListWindowCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> OpenReplacementOverviewWindowCommand { get; }
 
     public ReactiveCommand<Unit, Unit> OpenWorkshopVpkFinderWindowCommand { get; }
 

@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls;
+using Avalonia.Controls;
 using FireAxe.ViewModels;
 using FireAxe.Views;
 using System;
@@ -20,6 +20,7 @@ public class AppWindowManager : IAppWindowManager
     private WindowReference<AddonTagManagerWindow>? _tagManagerWindowRef = null;
     private WindowReference<AddonProblemListWindow>? _problemListWindowRef = null;
     private WindowReference<VpkAddonConflictListWindow>? _vpkConflictListWindowRef = null;
+    private WindowReference<ReplacementOverviewWindow>? _replacementOverviewWindowRef = null;
 
     public AppWindowManager(AppSettings settings, DownloadItemListViewModel downloadItemListViewModel, HttpClient httpClient)
     {
@@ -114,6 +115,22 @@ public class AppWindowManager : IAppWindowManager
         OpenWindow(ref _vpkConflictListWindowRef, () => new VpkAddonConflictListWindow
         {
             DataContext = new VpkAddonConflictListViewModel(addonRoot)
+        });
+    }
+
+    public void OpenReplacementOverviewWindow()
+    {
+        var mainWindowViewModel = MainWindowViewModel;
+        var addonRoot = mainWindowViewModel?.AddonRoot;
+        if (addonRoot is null || mainWindowViewModel is null)
+        {
+            return;
+        }
+        OpenWindow(ref _replacementOverviewWindowRef, () => new ReplacementOverviewWindow
+        {
+            DataContext = new ReplacementOverviewViewModel(
+                addonRoot,
+                addon => mainWindowViewModel.AddonNodeExplorerViewModel?.GotoNode(addon))
         });
     }
 

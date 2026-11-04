@@ -30,6 +30,7 @@
         <MenuItem Header="{x:Static r:Texts.TagManager}" Command="{Binding OpenTagManagerWindowCommand}"/>
         <MenuItem Header="{x:Static r:Texts.DownloadList}" Command="{Binding OpenDownloadListWindowCommand}"/>
         <MenuItem Header="{x:Static r:Texts.VpkConflictList}" Command="{Binding OpenVpkConflictListWindowCommand}"/>
+        <MenuItem Header="{x:Static r:Texts.ReplacementOverview}" Command="{Binding OpenReplacementOverviewWindowCommand}" ToolTip.Tip="{x:Static r:Texts.ReplacementOverviewTip}"/>
         <MenuItem Header="{x:Static r:Texts.WorkshopVpkFinder}" Command="{Binding OpenWorkshopVpkFinderWindowCommand}"/>
         <MenuItem Header="{x:Static r:Texts.FileCleaner}" Command="{Binding OpenFileCleanerWindowCommand}"/>
         <MenuItem Header="{x:Static r:Texts.AddonNameAutoSetter}" Command="{Binding OpenAddonNameAutoSetterWindowCommand}"/>

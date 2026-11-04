@@ -1,0 +1,154 @@
+<Window
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:FireAxe.ViewModels"
+  xmlns:r="using:FireAxe.Resources"
+  xmlns:conv="using:FireAxe.ValueConverters"
+  mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="700"
+  x:Class="FireAxe.Views.ReplacementOverviewWindow"
+  x:DataType="vm:ReplacementOverviewViewModel"
+  Title="{x:Static r:Texts.ReplacementOverview}"
+  Width="960" Height="780"
+  WindowStartupLocation="CenterScreen">
+  <Window.Styles>
+    <Style Selector="TextBlock.EmptyHint">
+      <Setter Property="Text" Value="{x:Static r:Texts.Empty}"/>
+      <Setter Property="Margin" Value="10"/>
+      <Setter Property="HorizontalAlignment" Value="Center"/>
+      <Setter Property="VerticalAlignment" Value="Top"/>
+    </Style>
+    <Style Selector="TextBlock.category">
+      <Setter Property="FontSize" Value="15"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Margin" Value="0,10,0,2"/>
+    </Style>
+    <Style Selector="TextBlock.secondary">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="Opacity" Value="0.6"/>
+    </Style>
+  </Window.Styles>
+
+  <DockPanel Margin="8">
+    <DockPanel DockPanel.Dock="Top">
+      <StackPanel
+        DockPanel.Dock="Right"
+        Orientation="Horizontal">
+        <TextBlock
+          Text="{x:Static r:Texts.RefreshingHint}"
+          IsVisible="{Binding IsRefreshing, FallbackValue=False}"
+          Margin="5"
+          VerticalAlignment="Center"/>
+        <Button
+          Command="{Binding RefreshCommand}"
+          Content="{x:Static r:Texts.Refresh}"
+          Margin="5"/>
+      </StackPanel>
+      <StackPanel Orientation="Horizontal">
+        <ComboBox
+          ItemsSource="{Binding FilterOptions}"
+          SelectedItem="{Binding SelectedFilterOption, Mode=TwoWay}"
+          MinWidth="150"
+          Margin="0,0,10,0"
+          VerticalAlignment="Center"/>
+        <TextBlock
+          Text="{Binding Summary}"
+          VerticalAlignment="Center"
+          TextWrapping="Wrap"/>
+      </StackPanel>
+    </DockPanel>
+
+    <ScrollViewer Margin="0,6,0,0">
+      <Panel>
+        <ItemsControl ItemsSource="{Binding Groups}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ReplacementCategoryGroupViewModel">
+              <StackPanel>
+                <TextBlock Classes="category" Text="{Binding Title}"/>
+                <ItemsControl ItemsSource="{Binding Items}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ReplacementSlotItemViewModel">
+                      <Expander
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Margin="0,2">
+                        <Expander.Header>
+                          <StackPanel Orientation="Horizontal">
+                            <StackPanel
+                              Width="210"
+                              Margin="0,0,8,0"
+                              Orientation="Vertical">
+                              <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                              <TextBlock Classes="secondary" Text="{Binding SecondaryName}"/>
+                            </StackPanel>
+                            <TextBlock
+                              Width="96"
+                              Text="{Binding StateText}"
+                              Foreground="{Binding State, Converter={x:Static conv:ReplacementStateConverters.ToBrush}}"
+                              FontWeight="SemiBold"
+                              VerticalAlignment="Center"/>
+                            <TextBlock
+                              MaxWidth="520"
+                              Text="{Binding SummaryText}"
+                              TextTrimming="CharacterEllipsis"
+                              VerticalAlignment="Center"/>
+                          </StackPanel>
+                        </Expander.Header>
+                        <ItemsControl ItemsSource="{Binding Addons}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ReplacementAddonItemViewModel">
+                              <Grid ColumnDefinitions="64,*,150,Auto" Margin="0,3">
+                                <TextBlock
+                                  Text="{Binding RoleText}"
+                                  VerticalAlignment="Center"/>
+                                <TextBlock
+                                  Grid.Column="1"
+                                  Text="{Binding Name}"
+                                  TextWrapping="Wrap"
+                                  Margin="0,0,10,0"
+                                  VerticalAlignment="Center"/>
+                                <TextBlock
+                                  Grid.Column="2"
+                                  Text="{Binding DetailsText}"
+                                  Classes="secondary"
+                                  VerticalAlignment="Center"/>
+                                <Button
+                                  Grid.Column="3"
+                                  Content="{x:Static r:Texts.ReplacementLocate}"
+                                  Command="{Binding LocateCommand}"
+                                  Margin="5,0,0,0"/>
+                              </Grid>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <StackPanel Orientation="Vertical"/>
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                      </Expander>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Orientation="Vertical"/>
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                </ItemsControl>
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Vertical"/>
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+        </ItemsControl>
+        <TextBlock
+          Classes="EmptyHint"
+          IsVisible="{Binding HasNoVisibleSlots, FallbackValue=False}"/>
+      </Panel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Serilog;
@@ -1272,7 +1272,7 @@ public sealed class AddonRoot : ObservableObject, IAsyncDisposable, IAddonNodeCo
                 tasks.Add(checkTask);
             }
 
-            foreach (var node in Nodes)
+            foreach (var node in Nodes.ToArray())
             {
                 tasks.Add(node.DestroyAsync());
             }

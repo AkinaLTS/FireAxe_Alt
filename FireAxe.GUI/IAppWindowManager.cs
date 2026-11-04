@@ -1,4 +1,4 @@
-﻿using FireAxe.ViewModels;
+using FireAxe.ViewModels;
 using FireAxe.Views;
 using System;
 
@@ -23,6 +23,8 @@ public interface IAppWindowManager
     void OpenTagManagerWindow();
 
     void OpenVpkConflictListWindow();
+
+    void OpenReplacementOverviewWindow();
 
     void OpenWorkshopVpkFinderWindow();
 

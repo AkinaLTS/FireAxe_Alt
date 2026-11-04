@@ -1,3 +1,7 @@
+# v0.7.6
+- add: new window: Replacement Overview (Tools -> Replacement Overview). It shows, for every weapon, melee weapon, throwable/healing item, common infected and special infected slot, which addons replace it, whether they are enabled, which one takes effect, and which slots are still vanilla
+- add: the Replacement Overview detects texture-only replacements (material files without a model) and texture-only melee weapon skins
+- fix: closing a directory could leave addon nodes undisposed because the addon list was modified while being enumerated
 # v0.7.5
 - fix: the launch options configured in Steam could not be read after a Steam update (the config file now contains json-like values)
 - add: new setting: custom launch options (when set, they are used instead of the launch options configured in Steam)

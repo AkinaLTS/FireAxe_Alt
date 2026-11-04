@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -1222,5 +1222,77 @@
   </data>
   <data name="UpdateCheckRepositoryNote" xml:space="preserve">
     <value>Format: owner/name. The release with the highest version number will be used for the update check.</value>
+  </data>
+  <data name="ReplacementOverview" xml:space="preserve">
+    <value>Replacement Overview</value>
+  </data>
+  <data name="ReplacementOverviewTip" xml:space="preserve">
+    <value>Show which addons replace each weapon, melee weapon, common infected and special infected slot, and which slots are still vanilla</value>
+  </data>
+  <data name="ReplacementCategoryPrimaryWeapon" xml:space="preserve">
+    <value>Primary Weapons</value>
+  </data>
+  <data name="ReplacementCategorySecondaryWeapon" xml:space="preserve">
+    <value>Secondary Weapons</value>
+  </data>
+  <data name="ReplacementCategoryMeleeWeapon" xml:space="preserve">
+    <value>Melee Weapons</value>
+  </data>
+  <data name="ReplacementCategoryEquipment" xml:space="preserve">
+    <value>Throwables and Healing Items</value>
+  </data>
+  <data name="ReplacementCategoryCommonInfected" xml:space="preserve">
+    <value>Common Infected</value>
+  </data>
+  <data name="ReplacementCategorySpecialInfected" xml:space="preserve">
+    <value>Special Infected</value>
+  </data>
+  <data name="ReplacementStateVanilla" xml:space="preserve">
+    <value>Vanilla</value>
+  </data>
+  <data name="ReplacementStateInstalledButDisabled" xml:space="preserve">
+    <value>Installed, disabled</value>
+  </data>
+  <data name="ReplacementStateReplaced" xml:space="preserve">
+    <value>Replaced</value>
+  </data>
+  <data name="ReplacementStateOverridden" xml:space="preserve">
+    <value>Overridden</value>
+  </data>
+  <data name="ReplacementStateConflict" xml:space="preserve">
+    <value>Conflict</value>
+  </data>
+  <data name="ReplacementFilterAll" xml:space="preserve">
+    <value>All slots</value>
+  </data>
+  <data name="ReplacementFilterReplaced" xml:space="preserve">
+    <value>Replaced only</value>
+  </data>
+  <data name="ReplacementFilterVanilla" xml:space="preserve">
+    <value>Vanilla only</value>
+  </data>
+  <data name="ReplacementFilterConflict" xml:space="preserve">
+    <value>Conflicts only</value>
+  </data>
+  <data name="ReplacementFilterInstalledButDisabled" xml:space="preserve">
+    <value>Disabled only</value>
+  </data>
+  <data name="ReplacementSummary" xml:space="preserve">
+    <value>{0} slots: {1} replaced, {2} vanilla, {3} conflicts, {4} installed but disabled</value>
+  </data>
+  <data name="ReplacementAddonDetails" xml:space="preserve">
+    <value>priority {0} · {1} files</value>
+  </data>
+  <data name="ReplacementLocate" xml:space="preserve">
+    <value>Locate</value>
+  </data>
+  <data name="ReplacementRoleEffective" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="ReplacementRoleCovered" xml:space="preserve">
+    <value>Overridden</value>
+  </data>
+  <data name="ReplacementRoleDisabled" xml:space="preserve">
+    <value>Disabled</value>
   </data>
 </root>
