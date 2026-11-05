@@ -1,10 +1,16 @@
 # FireAxe 构建与发布工作流
 #
-# 触发方式：
-#   1) 推送到任意分支 —— 自动构建 Windows / Linux 两个平台的产物，产物保存在 Actions 页面
-#   2) 推送的提交信息中包含 [release]（例如 "fix: xxx [release]"）—— 构建成功后自动创建一个 GitHub Release
-#      Release 的 tag 使用 Directory.Build.props 中的版本号（如 0.7.6），与程序内置的更新检查逻辑一致
-#   3) 在 Actions 页面手动运行（Run workflow）—— 勾选「创建 GitHub Release」即发布，不勾选则只构建
+# 触发方式（只看 HEAD 提交的标题行，即第一行）：
+#   1) 标题含 [CI]       —— 构建 Windows / Linux 两个平台的产物，不上传 Release
+#   2) 标题含 [RELEASE]  —— 构建并创建 GitHub Release（单独生效，不需要同时带 [CI]）
+#   3) 标题不含上述标记  —— 整个 workflow 跳过，不分配 runner（Actions 里只留一条 skipped 记录）
+#   4) Actions 页面手动运行（Run workflow）—— 勾选「创建 GitHub Release」即发布，不勾选则只构建
+#
+# 标记规则：
+#   - 只匹配提交标题行，正文里出现不算
+#   - 区分大小写，必须是全大写的 [CI] / [RELEASE]
+#   - 同时出现时按 [RELEASE] 处理
+#   - Release 的 tag 使用 Directory.Build.props 中的版本号（如 0.7.6），与程序内置的更新检查逻辑一致
 #
 # 产物命名与本地 publish.py / 上游 Release 保持一致：
 #   FireAxe-<version>-win-x64.zip         Windows x64（自包含，无需安装 .NET）
@@ -22,7 +28,7 @@ on:
   workflow_dispatch:
     inputs:
       release:
-        description: '创建 GitHub Release（不勾选则只构建产物）'
+        description: '创建 GitHub Release（推送提交标题含 [RELEASE] 时也会自动发布）'
         type: boolean
         default: false
       tag:
@@ -41,15 +47,23 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # 读取版本号，并判断本次运行是否需要创建 Release
+  # 读取版本号，并判断本次是否需要构建 / 发布
   # ---------------------------------------------------------------------------
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # 粗筛：没有标记的推送不分配 runner，直接跳过。
+    # GitHub 表达式不区分大小写、也无法只匹配第一行，
+    # 所以精确判定（标题行 + 大小写）放在下面的 bash 脚本里。
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[CI]') ||
+      contains(github.event.head_commit.message, '[RELEASE]')
     outputs:
       version: ${{ steps.meta.outputs.version }}
       tag: ${{ steps.meta.outputs.tag }}
+      should_build: ${{ steps.meta.outputs.should_build }}
       should_release: ${{ steps.meta.outputs.should_release }}
       release_reason: ${{ steps.meta.outputs.release_reason }}
     steps:
@@ -61,7 +75,6 @@ jobs:
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           INPUT_RELEASE: ${{ inputs.release }}
           INPUT_TAG: ${{ inputs.tag }}
         run: |
@@ -79,9 +92,15 @@ jobs:
             tag="$version"
           fi
 
+          # 只取 HEAD 提交的标题行（第一行），正文里的标记不算
+          subject="$(git log -1 --format=%s)"
+
+          should_build=false
           should_release=false
           reason=""
+
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            should_build=true
             if [ "${INPUT_RELEASE:-false}" = "true" ]; then
               should_release=true
               reason="手动运行并勾选了创建 Release"
@@ -89,25 +108,33 @@ jobs:
               reason="手动运行，未勾选创建 Release"
             fi
           else
-            case "$COMMIT_MESSAGE" in
-              *'[release]'*)
+            case "$subject" in
+              *'[RELEASE]'*)
+                should_build=true
                 should_release=true
-                reason="提交信息包含 [release]"
+                reason="提交标题包含 [RELEASE]"
+                ;;
+              *'[CI]'*)
+                should_build=true
+                reason="提交标题包含 [CI]"
                 ;;
               *)
-                reason="提交信息不包含 [release]"
+                reason="提交标题未包含 [CI] 或 [RELEASE]，跳过构建"
                 ;;
             esac
           fi
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "should_build=$should_build" >> "$GITHUB_OUTPUT"
           echo "should_release=$should_release" >> "$GITHUB_OUTPUT"
           echo "release_reason=$reason" >> "$GITHUB_OUTPUT"
 
+          echo "提交标题: $subject"
           echo "版本号: $version"
           echo "tag: $tag"
-          echo "是否发布: $should_release（$reason）"
+          echo "是否构建: $should_build / 是否发布: $should_release"
+          echo "说明: $reason"
 
   # ---------------------------------------------------------------------------
   # Windows x64：自包含版 + 便携版（框架依赖）
@@ -115,6 +142,7 @@ jobs:
   build-windows:
     name: Build (Windows x64)
     needs: prepare
+    if: needs.prepare.outputs.should_build == 'true'
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
@@ -197,6 +225,7 @@ jobs:
   build-linux:
     name: Build (Linux x64)
     needs: prepare
+    if: needs.prepare.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -296,7 +325,7 @@ jobs:
           retention-days: 14
 
   # ---------------------------------------------------------------------------
-  # 创建 Release（仅在提交信息含 [release] 或手动勾选时执行）
+  # 创建 Release（仅在标题含 [RELEASE] 或手动勾选发布时执行）
   # ---------------------------------------------------------------------------
   release:
     name: Create Release
@@ -430,6 +459,7 @@ jobs:
       - name: Write summary
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
+          SHOULD_BUILD: ${{ needs.prepare.outputs.should_build }}
           SHOULD_RELEASE: ${{ needs.prepare.outputs.should_release }}
           REASON: ${{ needs.prepare.outputs.release_reason }}
           WINDOWS_RESULT: ${{ needs.build-windows.result }}
@@ -441,9 +471,11 @@ jobs:
             echo "| 项目 | 值 |"
             echo "| --- | --- |"
             echo "| 版本号 | \`$VERSION\` |"
+            echo "| 是否构建 | $SHOULD_BUILD |"
+            echo "| 是否发布 | $SHOULD_RELEASE |"
+            echo "| 说明 | $REASON |"
             echo "| Windows x64 | $WINDOWS_RESULT |"
             echo "| Linux x64 | $LINUX_RESULT |"
-            echo "| 是否发布 | $SHOULD_RELEASE（$REASON） |"
             echo
             echo "产物可在本次运行的 Artifacts 中下载。"
           } >> "$GITHUB_STEP_SUMMARY"
