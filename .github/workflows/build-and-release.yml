@@ -1,0 +1,449 @@
+# FireAxe 构建与发布工作流
+#
+# 触发方式：
+#   1) 推送到任意分支 —— 自动构建 Windows / Linux 两个平台的产物，产物保存在 Actions 页面
+#   2) 推送的提交信息中包含 [release]（例如 "fix: xxx [release]"）—— 构建成功后自动创建一个 GitHub Release
+#      Release 的 tag 使用 Directory.Build.props 中的版本号（如 0.7.6），与程序内置的更新检查逻辑一致
+#   3) 在 Actions 页面手动运行（Run workflow）—— 勾选「创建 GitHub Release」即发布，不勾选则只构建
+#
+# 产物命名与本地 publish.py / 上游 Release 保持一致：
+#   FireAxe-<version>-win-x64.zip         Windows x64（自包含，无需安装 .NET）
+#   FireAxe-<version>-portable.zip        便携版（框架依赖，需要 .NET 10 运行时）
+#   FireAxe-<version>-linux-x64.zip       Linux x64（自包含）
+#   FireAxe-<version>-linux-x64.AppImage  Linux x64（AppImage）
+
+name: Build and Release
+
+on:
+  push:
+    # 只响应分支推送：这样创建 Release 时打出的 tag 不会再触发一次构建
+    branches:
+      - '**'
+  workflow_dispatch:
+    inputs:
+      release:
+        description: '创建 GitHub Release（不勾选则只构建产物）'
+        type: boolean
+        default: false
+      tag:
+        description: '自定义 tag 名称（留空则使用 Directory.Build.props 中的版本号）'
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 读取版本号，并判断本次运行是否需要创建 Release
+  # ---------------------------------------------------------------------------
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      should_release: ${{ steps.meta.outputs.should_release }}
+      release_reason: ${{ steps.meta.outputs.release_reason }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version and decide release
+        id: meta
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          INPUT_RELEASE: ${{ inputs.release }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          version="$(sed -n 's:.*<Version>[[:space:]]*\([^<]*\)</Version>.*:\1:p' Directory.Build.props | head -n1 | tr -d '[:space:]')"
+          if [ -z "$version" ]; then
+            echo "::error::无法从 Directory.Build.props 中读取 <Version>"
+            exit 1
+          fi
+
+          tag="${INPUT_TAG:-}"
+          tag="$(printf '%s' "$tag" | tr -d '[:space:]')"
+          if [ -z "$tag" ]; then
+            tag="$version"
+          fi
+
+          should_release=false
+          reason=""
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ "${INPUT_RELEASE:-false}" = "true" ]; then
+              should_release=true
+              reason="手动运行并勾选了创建 Release"
+            else
+              reason="手动运行，未勾选创建 Release"
+            fi
+          else
+            case "$COMMIT_MESSAGE" in
+              *'[release]'*)
+                should_release=true
+                reason="提交信息包含 [release]"
+                ;;
+              *)
+                reason="提交信息不包含 [release]"
+                ;;
+            esac
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "should_release=$should_release" >> "$GITHUB_OUTPUT"
+          echo "release_reason=$reason" >> "$GITHUB_OUTPUT"
+
+          echo "版本号: $version"
+          echo "tag: $tag"
+          echo "是否发布: $should_release（$reason）"
+
+  # ---------------------------------------------------------------------------
+  # Windows x64：自包含版 + 便携版（框架依赖）
+  # ---------------------------------------------------------------------------
+  build-windows:
+    name: Build (Windows x64)
+    needs: prepare
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # 仓库中的图标等资源由 Git LFS 管理，缺少它们会导致构建产物异常
+          lfs: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Publish (win-x64, self-contained)
+        shell: pwsh
+        run: |
+          dotnet publish FireAxe.GUI/FireAxe.GUI.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            --property:PublishReadyToRun=true `
+            --output out/win-x64
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Publish (portable, framework-dependent)
+        shell: pwsh
+        run: |
+          dotnet publish FireAxe.GUI/FireAxe.GUI.csproj `
+            --configuration Release `
+            --self-contained false `
+            --property:PublishReadyToRun=true `
+            --output out/portable
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Package (zip)
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $dist = (Resolve-Path dist).Path
+          $items = @(
+            @{ Source = 'out/win-x64';  Name = "FireAxe-${env:VERSION}-win-x64.zip" },
+            @{ Source = 'out/portable'; Name = "FireAxe-${env:VERSION}-portable.zip" }
+          )
+          foreach ($item in $items) {
+            $source = (Resolve-Path $item.Source).Path
+            $target = Join-Path $dist $item.Name
+            if (Test-Path $target) { Remove-Item $target -Force }
+            # 使用 .NET API 打包，保证 zip 内路径使用 "/" 分隔符
+            [System.IO.Compression.ZipFile]::CreateFromDirectory(
+              $source, $target,
+              [System.IO.Compression.CompressionLevel]::Optimal,
+              $false)
+            Get-Item $target | Select-Object Name, Length
+          }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-win-x64
+          path: dist/*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Linux x64：自包含版 + AppImage
+  # ---------------------------------------------------------------------------
+  build-linux:
+    name: Build (Linux x64)
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # AppDir 中的图标和 .DirIcon 由 Git LFS 管理
+          lfs: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Install tools
+        run: |
+          set -euo pipefail
+          if ! command -v zip >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends zip
+          fi
+
+      - name: Publish (linux-x64, self-contained)
+        run: |
+          set -euo pipefail
+          dotnet publish FireAxe.GUI/FireAxe.GUI.csproj \
+            --configuration Release \
+            --runtime linux-x64 \
+            --self-contained true \
+            --property:PublishReadyToRun=true \
+            --output out/linux-x64
+
+      - name: Package (zip)
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          (cd out/linux-x64 && zip -qry "$GITHUB_WORKSPACE/dist/FireAxe-${VERSION}-linux-x64.zip" .)
+          ls -lh dist
+
+      - name: Build AppImage
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          appdir="$RUNNER_TEMP/FireAxe.AppDir"
+          rm -rf "$appdir"
+          cp -a PublishContents/Linux/AppImage/FireAxe.AppDir "$appdir"
+          mkdir -p "$appdir/usr/bin"
+          cp -a out/linux-x64/. "$appdir/usr/bin/"
+          # 统一换行符：appimagetool 会拒绝包含 CRLF 的 .desktop 文件
+          find "$appdir" -type f \( -name '*.desktop' -o -name 'AppRun' \) \
+            -exec sed -i 's/\r$//' {} +
+          # AppRun 和主程序必须可执行（仓库中不保留可执行位）
+          chmod +x "$appdir/AppRun" "$appdir/usr/bin/FireAxe"
+
+          tool="$RUNNER_TEMP/appimagetool-x86_64.AppImage"
+          rm -f "$tool"
+          for url in \
+            "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage" \
+            "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+          do
+            echo "下载 appimagetool: $url"
+            if curl -fsSL --retry 3 --retry-delay 5 -o "$tool" "$url"; then
+              break
+            fi
+            rm -f "$tool"
+          done
+          [ -s "$tool" ] || { echo "::error::下载 appimagetool 失败"; exit 1; }
+          chmod +x "$tool"
+
+          mkdir -p dist
+          # 运行环境没有 FUSE，使用 APPIMAGE_EXTRACT_AND_RUN 直接解包运行
+          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 "$tool" "$appdir" \
+            "dist/FireAxe-${VERSION}-linux-x64.AppImage"
+          chmod +x "dist/FireAxe-${VERSION}-linux-x64.AppImage"
+          ls -lh dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-linux-x64
+          path: |
+            dist/*.zip
+            dist/*.AppImage
+          if-no-files-found: error
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # 创建 Release（仅在提交信息含 [release] 或手动勾选时执行）
+  # ---------------------------------------------------------------------------
+  release:
+    name: Create Release
+    needs:
+      - prepare
+      - build-windows
+      - build-linux
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: dist-*
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lh dist
+
+      - name: Compose release notes
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          ver_re="$(printf '%s' "$VERSION" | sed 's/[.]/\\./g')"
+          awk -v ver="$ver_re" '
+            $0 ~ "^#+[[:space:]]*v?" ver "([^0-9.]|$)" { inside = 1; next }
+            inside && $0 ~ /^#+[[:space:]]/ { exit }
+            inside { print }
+          ' CHANGELOG.md | sed -e '/./,$!d' > changelog-section.md || true
+
+          {
+            echo "## 变更内容 / Changes"
+            echo
+            if [ -s changelog-section.md ]; then
+              cat changelog-section.md
+            else
+              echo "本次发布的变更内容请查看 [CHANGELOG.md](CHANGELOG.md)。"
+            fi
+            echo
+            echo "## 下载 / Downloads"
+            echo
+            echo "| 平台 | 文件 |"
+            echo "| --- | --- |"
+            echo "| Windows x64（自包含，免安装） | \`FireAxe-${VERSION}-win-x64.zip\` |"
+            echo "| 便携版（需要 .NET 10 运行时） | \`FireAxe-${VERSION}-portable.zip\` |"
+            echo "| Linux x64（AppImage） | \`FireAxe-${VERSION}-linux-x64.AppImage\` |"
+            echo "| Linux x64（压缩包，自包含） | \`FireAxe-${VERSION}-linux-x64.zip\` |"
+            echo
+            echo "> Windows 版需要以管理员身份运行（用于写入游戏目录）。"
+            echo
+            echo "由 GitHub Actions 于 $(date -u '+%Y-%m-%d %H:%M UTC') 自动构建。"
+          } > release-notes.md
+
+          echo '----- release notes -----'
+          cat release-notes.md
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          files=()
+          for f in dist/*.zip dist/*.AppImage; do
+            [ -f "$f" ] && files+=("$f")
+          done
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::没有找到任何构建产物"
+            exit 1
+          fi
+
+          # 默认 tag 就是版本号（与程序的更新检查逻辑一致），标题沿用上游风格 v<version>
+          title="v$VERSION"
+          if [ "$TAG" != "$VERSION" ]; then
+            title="$TAG"
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG 已存在，更新资源与说明"
+            gh release upload "$TAG" "${files[@]}" --clobber
+            gh release edit "$TAG" --title "$title" --notes-file release-notes.md
+          elif git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "tag $TAG 已存在但没有 Release，为其创建 Release"
+            gh release create "$TAG" --title "$title" --notes-file release-notes.md "${files[@]}"
+          else
+            echo "创建 Release $TAG"
+            gh release create "$TAG" --target "$SHA" --title "$title" \
+              --notes-file release-notes.md "${files[@]}"
+          fi
+
+          release_url="$(gh release view "$TAG" --json url --jq .url)"
+          echo "Release: $release_url"
+          {
+            echo "### 已发布 Release v$VERSION"
+            echo
+            echo "- 仓库：${{ github.repository }}"
+            echo "- 地址：$release_url"
+            echo "- 触发方式：${{ needs.prepare.outputs.release_reason }}"
+            echo
+            echo "| 资源 | 大小 |"
+            echo "| --- | --- |"
+            for f in "${files[@]}"; do
+              printf '| `%s` | %s |\n' "$(basename "$f")" "$(du -h "$f" | cut -f1)"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # 汇总本次构建信息（无论是否发布）
+  # ---------------------------------------------------------------------------
+  summary:
+    name: Summary
+    needs:
+      - prepare
+      - build-windows
+      - build-linux
+    if: always() && needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write summary
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SHOULD_RELEASE: ${{ needs.prepare.outputs.should_release }}
+          REASON: ${{ needs.prepare.outputs.release_reason }}
+          WINDOWS_RESULT: ${{ needs.build-windows.result }}
+          LINUX_RESULT: ${{ needs.build-linux.result }}
+        run: |
+          {
+            echo "### FireAxe 构建报告"
+            echo
+            echo "| 项目 | 值 |"
+            echo "| --- | --- |"
+            echo "| 版本号 | \`$VERSION\` |"
+            echo "| Windows x64 | $WINDOWS_RESULT |"
+            echo "| Linux x64 | $LINUX_RESULT |"
+            echo "| 是否发布 | $SHOULD_RELEASE（$REASON） |"
+            echo
+            echo "产物可在本次运行的 Artifacts 中下载。"
+          } >> "$GITHUB_STEP_SUMMARY"
