@@ -2,6 +2,8 @@
 # FireAxe
 **English** | **[简体中文](README.zh-Hans.md)**
 
+**Please note that this is just a version I use myself, forked from ktxiaok/FireAxe.**
+
 [Downloads](https://github.com/ktxiaok/FireAxe/releases)
 
 FireAxe (formerly L4D2AddonAssistant) is an open-source GUI tool for managing Left 4 Dead 2 addons. It has the following features:
